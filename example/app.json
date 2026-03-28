@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "expo-face-check-example",
+    "slug": "expo-face-check-example",
+    "version": "1.0.0",
+    "sdkVersion": "52.0.0",
+    "platforms": ["ios", "android"],
+    "ios": {
+      "bundleIdentifier": "expo.modules.facecheck.example",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Select a photo to check for faces"
+      }
+    },
+    "android": {
+      "package": "expo.modules.facecheck.example"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Select a photo to check for faces"
+        }
+      ]
+    ]
+  }
+}
