@@ -1,0 +1,72 @@
+---
+slug: /
+sidebar_position: 1
+title: Overview
+---
+
+# expo-face-check
+
+On-device face detection for Expo apps. Detect faces locally. No API keys, no cloud, just native intelligence.
+
+<span className="platform-badge platform-badge--ios"> iOS</span>
+<span className="platform-badge platform-badge--android">🤖 Android</span>
+
+## What is expo-face-check?
+
+**expo-face-check** is a library that provides on-device face detection for React Native / Expo applications. It detects whether an image contains exactly one dominant face — useful for profile photo validation, identity verification flows, and selfie checks.
+
+On iOS, expo-face-check uses Apple's [Vision framework](https://developer.apple.com/documentation/vision) for face detection. On Android, it uses [Google ML Kit Face Detection](https://developers.google.com/ml-kit/vision/face-detection).
+
+:::info Privacy First
+All face detection happens locally on the device. Your users' photos never leave their phone, ensuring complete privacy and compliance with data protection regulations.
+:::
+
+## Key Features
+
+- **Privacy-first** — All detection happens on-device; no photos leave the user's device
+- **Zero latency** — No network round-trips required
+- **Free forever** — No API costs, rate limits, or subscriptions
+- **Native performance** — Built on [Apple Vision](https://developer.apple.com/documentation/vision) (iOS) and [Google ML Kit](https://developers.google.com/ml-kit/vision/face-detection) (Android)
+- **Dominant face detection** — Intelligently identifies a single dominant face among multiple faces
+- **Face bounds** — Returns bounding box coordinates for the detected face
+- **Smart filtering** — Automatically ignores faces smaller than 1.5% of the image area
+- **Simple API** — One function, one result — `checkFace(imageUri)`
+
+## Platform Support
+
+| Platform | Framework | Min Version |
+|----------|-----------|-------------|
+| iOS | Apple Vision | iOS 13.0+ |
+| Android | Google ML Kit | API 21+ (Android 5.0) |
+
+**Requirements:**
+- Expo SDK 51+
+- iOS 13.0+
+- Android API 21+
+
+## Quick Example
+
+```typescript
+import { checkFace } from 'expo-face-check';
+
+// Pick an image (e.g., from expo-image-picker)
+const result = await checkFace(imageUri);
+
+if (result.status === 'READY') {
+  // ✅ Single dominant face detected
+  console.log('Face bounds:', result.dominantFaceBounds);
+} else if (result.status === 'NO_FACE') {
+  // ❌ No face found
+  alert('Please upload a photo with a face');
+} else if (result.status === 'MULTIPLE_FACES') {
+  // ⚠️ Multiple faces, none dominant
+  alert('Please upload a photo with only one person');
+}
+```
+
+## Next Steps
+
+- **[Get Started](/get-started)** — Install and run your first face detection in minutes
+- **[Platform Support](/guides/platform-support)** — Detailed platform requirements and capabilities
+- **[API Reference](/api/check-face)** — Full `checkFace()` documentation
+- **[Examples](/examples)** — Complete working examples
