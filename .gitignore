@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+build/
+
+# Expo
+.expo/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Example app
+example/node_modules/
+example/.expo/
+example/ios/Pods/
+example/android/.gradle/
+example/android/build/
+
+# npm
+*.tgz
