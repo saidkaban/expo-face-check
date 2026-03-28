@@ -1,0 +1,45 @@
+{
+  "name": "expo-face-check",
+  "version": "0.0.1",
+  "description": "On-device face detection for Expo — detects if an image has exactly one dominant face",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "files": [
+    "build",
+    "src",
+    "ios",
+    "android",
+    "expo-module.config.json",
+    "index.js"
+  ],
+  "scripts": {
+    "build": "expo-module build",
+    "clean": "expo-module clean",
+    "lint": "expo-module lint",
+    "test": "expo-module test",
+    "prepare": "expo-module prepare",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "expo-module": "expo-module"
+  },
+  "keywords": [
+    "expo",
+    "react-native",
+    "face-detection",
+    "face-verification",
+    "expo-module"
+  ],
+  "author": "saidkaban",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/saidkaban/expo-face-check"
+  },
+  "peerDependencies": {
+    "expo": "*"
+  },
+  "devDependencies": {
+    "expo-module-scripts": "^4.0.0",
+    "expo-modules-core": "^2.0.0",
+    "typescript": "^5.3.0"
+  }
+}
