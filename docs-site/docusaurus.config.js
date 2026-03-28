@@ -8,7 +8,7 @@ const config = {
     "On-device face detection for Expo apps. Detect faces locally. No API keys, no cloud, just native intelligence.",
   favicon: "img/favicon.ico",
 
-  url: "https://expo-face-check.com",
+  url: "https://expo-face-check.dev",
   baseUrl: "/",
 
   organizationName: "saidkaban",
