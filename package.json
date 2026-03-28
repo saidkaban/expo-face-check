@@ -1,6 +1,6 @@
 {
   "name": "expo-face-check",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "On-device face detection for Expo — detects if an image has exactly one dominant face",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -30,9 +30,13 @@
   ],
   "author": "saidkaban",
   "license": "MIT",
+  "homepage": "https://github.com/saidkaban/expo-face-check#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/saidkaban/expo-face-check"
+    "url": "git+https://github.com/saidkaban/expo-face-check.git"
+  },
+  "bugs": {
+    "url": "https://github.com/saidkaban/expo-face-check/issues"
   },
   "peerDependencies": {
     "expo": "*"
