@@ -61,10 +61,12 @@ class ExpoFaceCheckModule : Module() {
         detector.process(image)
           .addOnSuccessListener { faces ->
             processFaces(faces, minFaceArea, promise)
+            bitmap.recycle()
             detector.close()
           }
           .addOnFailureListener { e ->
             promise.reject(CodedException("ERR_FACE_DETECTION", "Face detection failed: ${e.message}", e))
+            bitmap.recycle()
             detector.close()
           }
       } catch (e: Exception) {
