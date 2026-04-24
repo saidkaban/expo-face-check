@@ -2,25 +2,35 @@ import ExpoModulesCore
 import Vision
 import UIKit
 
+private let MIN_PIXEL_SIZE: CGFloat = 500_000
+private let AREA_THRESHOLD: CGFloat = 0.2
+
 public class ExpoFaceCheckModule: Module {
   public func definition() -> ModuleDefinition {
     Name("ExpoFaceCheck")
 
     AsyncFunction("checkFace") { (imageUri: String, promise: Promise) in
-      guard let image = self.loadImage(from: imageUri) else {
+      guard let rawImage = self.loadImage(from: imageUri) else {
         promise.reject("ERR_LOAD_IMAGE", "Failed to load image from URI: \(imageUri)")
         return
       }
 
-      guard let cgImage = image.cgImage else {
-        promise.reject("ERR_LOAD_IMAGE", "Failed to get CGImage from loaded image")
+      guard let image = self.normalizeOrientation(rawImage),
+            let cgImage = image.cgImage else {
+        promise.reject("ERR_LOAD_IMAGE", "Failed to decode image: \(imageUri)")
         return
       }
 
       let imageWidth = CGFloat(cgImage.width)
       let imageHeight = CGFloat(cgImage.height)
-      let imageArea = imageWidth * imageHeight
-      let minFaceArea = imageArea * 0.015 // 1.5% threshold
+
+      if imageWidth * imageHeight < MIN_PIXEL_SIZE {
+        promise.resolve([
+          "status": "LOW_QUALITY",
+          "faceCount": 0
+        ])
+        return
+      }
 
       let request = VNDetectFaceRectanglesRequest { request, error in
         if let error = error {
@@ -28,7 +38,21 @@ public class ExpoFaceCheckModule: Module {
           return
         }
 
-        guard let results = request.results as? [VNFaceObservation] else {
+        let results = (request.results as? [VNFaceObservation]) ?? []
+
+        var detectedFaces: [(bounds: CGRect, area: CGFloat)] = []
+        for face in results {
+          let bbox = face.boundingBox
+          let pixelX = bbox.origin.x * imageWidth
+          let pixelY = (1.0 - bbox.origin.y - bbox.height) * imageHeight
+          let pixelWidth = bbox.width * imageWidth
+          let pixelHeight = bbox.height * imageHeight
+          let area = abs(pixelWidth) * abs(pixelHeight)
+          let pixelBounds = CGRect(x: pixelX, y: pixelY, width: pixelWidth, height: pixelHeight)
+          detectedFaces.append((bounds: pixelBounds, area: area))
+        }
+
+        if detectedFaces.isEmpty {
           promise.resolve([
             "status": "NO_FACE",
             "faceCount": 0
@@ -36,36 +60,17 @@ public class ExpoFaceCheckModule: Module {
           return
         }
 
-        // Convert Vision normalized coordinates to pixel coordinates and filter small faces
-        var significantFaces: [(bounds: CGRect, area: CGFloat)] = []
+        detectedFaces.sort { $0.area > $1.area }
+        let maxArea = detectedFaces[0].area
+        let dominantCount = detectedFaces.filter { $0.area / maxArea > AREA_THRESHOLD }.count
 
-        for face in results {
-          let bbox = face.boundingBox
-          // Vision coordinates: origin is bottom-left, normalized 0-1
-          let pixelX = bbox.origin.x * imageWidth
-          let pixelY = (1.0 - bbox.origin.y - bbox.height) * imageHeight
-          let pixelWidth = bbox.width * imageWidth
-          let pixelHeight = bbox.height * imageHeight
-          let faceArea = pixelWidth * pixelHeight
-
-          if faceArea >= minFaceArea {
-            let pixelBounds = CGRect(x: pixelX, y: pixelY, width: pixelWidth, height: pixelHeight)
-            significantFaces.append((bounds: pixelBounds, area: faceArea))
-          }
-        }
-
-        // Sort by area descending
-        significantFaces.sort { $0.area > $1.area }
-
-        let faceCount = significantFaces.count
-
-        if faceCount == 0 {
+        if dominantCount == 0 {
           promise.resolve([
             "status": "NO_FACE",
             "faceCount": 0
           ])
-        } else if faceCount == 1 {
-          let dominant = significantFaces[0]
+        } else if dominantCount == 1 {
+          let dominant = detectedFaces[0]
           promise.resolve([
             "status": "READY",
             "faceCount": 1,
@@ -77,28 +82,10 @@ public class ExpoFaceCheckModule: Module {
             ]
           ])
         } else {
-          // Check dominance: largest >= 2x second largest
-          let largestArea = significantFaces[0].area
-          let secondArea = significantFaces[1].area
-
-          if largestArea >= 2.0 * secondArea {
-            let dominant = significantFaces[0]
-            promise.resolve([
-              "status": "READY",
-              "faceCount": faceCount,
-              "dominantFaceBounds": [
-                "x": dominant.bounds.origin.x,
-                "y": dominant.bounds.origin.y,
-                "width": dominant.bounds.width,
-                "height": dominant.bounds.height
-              ]
-            ])
-          } else {
-            promise.resolve([
-              "status": "MULTIPLE_FACES",
-              "faceCount": faceCount
-            ])
-          }
+          promise.resolve([
+            "status": "MULTIPLE_FACES",
+            "faceCount": dominantCount
+          ])
         }
       }
 
@@ -114,7 +101,6 @@ public class ExpoFaceCheckModule: Module {
   }
 
   private func loadImage(from uri: String) -> UIImage? {
-    // Handle file:// URIs and plain paths
     let path: String
     if uri.hasPrefix("file://") {
       guard let url = URL(string: uri) else { return nil }
@@ -122,11 +108,19 @@ public class ExpoFaceCheckModule: Module {
     } else if uri.hasPrefix("/") {
       path = uri
     } else {
-      // Try as a URL
       guard let url = URL(string: uri), let data = try? Data(contentsOf: url) else { return nil }
       return UIImage(data: data)
     }
-
     return UIImage(contentsOfFile: path)
+  }
+
+  private func normalizeOrientation(_ image: UIImage) -> UIImage? {
+    if image.imageOrientation == .up { return image }
+    let format = UIGraphicsImageRendererFormat.default()
+    format.scale = image.scale
+    let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
+    return renderer.image { _ in
+      image.draw(in: CGRect(origin: .zero, size: image.size))
+    }
   }
 }

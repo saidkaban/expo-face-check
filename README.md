@@ -40,7 +40,7 @@ Analyzes a local image for faces.
 **Returns:** `FaceCheckResult`
 
 ```typescript
-type FaceCheckStatus = 'READY' | 'NO_FACE' | 'MULTIPLE_FACES';
+type FaceCheckStatus = 'READY' | 'NO_FACE' | 'MULTIPLE_FACES' | 'LOW_QUALITY';
 
 interface FaceBounds {
   x: number;
@@ -62,9 +62,10 @@ interface FaceCheckResult {
 |--------|---------|
 | `READY` | Exactly one dominant face detected |
 | `NO_FACE` | No faces found in the image |
-| `MULTIPLE_FACES` | Multiple faces found, none clearly dominant |
+| `MULTIPLE_FACES` | Multiple dominant faces found |
+| `LOW_QUALITY` | Image resolution below the minimum pixel count |
 
-A face is considered "dominant" when it's either the only face, or at least 2x larger than the next biggest face. Faces smaller than 1.5% of the image area are ignored.
+Images with fewer than 500,000 pixels (e.g. below ~707×707) are rejected as `LOW_QUALITY`. Otherwise, a face is counted as "dominant" when its bounding-box area is greater than 20% of the largest detected face's area. `READY` requires exactly one dominant face; two or more yield `MULTIPLE_FACES`. EXIF orientation is applied before detection.
 
 ## License
 
