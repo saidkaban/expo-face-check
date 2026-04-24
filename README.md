@@ -24,7 +24,9 @@ if (result.status === 'READY') {
 } else if (result.status === 'NO_FACE') {
   // No face found
 } else if (result.status === 'MULTIPLE_FACES') {
-  // Multiple faces, none dominant
+  // More than one dominant face detected
+} else if (result.status === 'LOW_QUALITY') {
+  // Image resolution below the minimum pixel count
 }
 ```
 
