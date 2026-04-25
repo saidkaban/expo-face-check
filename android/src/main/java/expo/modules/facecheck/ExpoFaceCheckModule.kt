@@ -16,15 +16,42 @@ import com.google.mlkit.vision.face.FaceDetectorOptions
 import java.io.File
 import java.io.InputStream
 
-private const val MIN_PIXEL_SIZE: Long = 500_000L
-private const val AREA_THRESHOLD: Double = 0.2
+private const val DEFAULT_MIN_PIXEL_SIZE: Long = 500_000L
+private const val DEFAULT_AREA_THRESHOLD: Double = 0.2
 
 class ExpoFaceCheckModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoFaceCheck")
 
-    AsyncFunction("checkFace") { imageUri: String, promise: Promise ->
+    AsyncFunction("checkFace") { imageUri: String, options: Map<String, Any?>?, promise: Promise ->
       try {
+        val minPixelSize: Long
+        val areaThreshold: Double
+
+        val rawMin = options?.get("minPixelSize")
+        if (rawMin != null) {
+          val value = (rawMin as? Number)?.toDouble()
+          if (value == null || value.isNaN() || value.isInfinite() || value < 0) {
+            promise.reject(CodedException("ERR_INVALID_OPTIONS", "minPixelSize must be a non-negative finite number", null))
+            return@AsyncFunction
+          }
+          minPixelSize = value.toLong()
+        } else {
+          minPixelSize = DEFAULT_MIN_PIXEL_SIZE
+        }
+
+        val rawArea = options?.get("areaThreshold")
+        if (rawArea != null) {
+          val value = (rawArea as? Number)?.toDouble()
+          if (value == null || value.isNaN() || value.isInfinite() || value < 0.0 || value > 1.0) {
+            promise.reject(CodedException("ERR_INVALID_OPTIONS", "areaThreshold must be a number between 0 and 1", null))
+            return@AsyncFunction
+          }
+          areaThreshold = value
+        } else {
+          areaThreshold = DEFAULT_AREA_THRESHOLD
+        }
+
         val context = appContext.reactContext ?: run {
           promise.reject(CodedException("ERR_NO_CONTEXT", "React context is not available", null))
           return@AsyncFunction
@@ -54,7 +81,7 @@ class ExpoFaceCheckModule : Module() {
         val imageWidth = bitmap.width.toLong()
         val imageHeight = bitmap.height.toLong()
 
-        if (imageWidth * imageHeight < MIN_PIXEL_SIZE) {
+        if (imageWidth * imageHeight < minPixelSize) {
           bitmap.recycle()
           promise.resolve(mapOf(
             "status" to "LOW_QUALITY",
@@ -65,15 +92,15 @@ class ExpoFaceCheckModule : Module() {
 
         val image = InputImage.fromBitmap(bitmap, 0)
 
-        val options = FaceDetectorOptions.Builder()
+        val detectorOptions = FaceDetectorOptions.Builder()
           .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
           .build()
 
-        val detector = FaceDetection.getClient(options)
+        val detector = FaceDetection.getClient(detectorOptions)
 
         detector.process(image)
           .addOnSuccessListener { faces ->
-            processFaces(faces, promise)
+            processFaces(faces, areaThreshold, promise)
             bitmap.recycle()
             detector.close()
           }
@@ -105,7 +132,7 @@ class ExpoFaceCheckModule : Module() {
     return rotated
   }
 
-  private fun processFaces(faces: List<Face>, promise: Promise) {
+  private fun processFaces(faces: List<Face>, areaThreshold: Double, promise: Promise) {
     data class DetectedFace(
       val x: Double,
       val y: Double,
@@ -136,7 +163,7 @@ class ExpoFaceCheckModule : Module() {
     }
 
     val maxArea = detected[0].area
-    val dominant = detected.filter { it.area / maxArea > AREA_THRESHOLD }
+    val dominant = detected.filter { it.area / maxArea > areaThreshold }
     val dominantCount = dominant.size
 
     when {

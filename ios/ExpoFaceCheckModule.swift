@@ -2,14 +2,37 @@ import ExpoModulesCore
 import Vision
 import UIKit
 
-private let MIN_PIXEL_SIZE: CGFloat = 500_000
-private let AREA_THRESHOLD: CGFloat = 0.2
+private let DEFAULT_MIN_PIXEL_SIZE: CGFloat = 500_000
+private let DEFAULT_AREA_THRESHOLD: CGFloat = 0.2
 
 public class ExpoFaceCheckModule: Module {
   public func definition() -> ModuleDefinition {
     Name("ExpoFaceCheck")
 
-    AsyncFunction("checkFace") { (imageUri: String, promise: Promise) in
+    AsyncFunction("checkFace") { (imageUri: String, options: [String: Any]?, promise: Promise) in
+      let minPixelSize: CGFloat
+      let areaThreshold: CGFloat
+
+      if let raw = options?["minPixelSize"] {
+        guard let value = (raw as? NSNumber)?.doubleValue, value.isFinite, value >= 0 else {
+          promise.reject("ERR_INVALID_OPTIONS", "minPixelSize must be a non-negative finite number")
+          return
+        }
+        minPixelSize = CGFloat(value)
+      } else {
+        minPixelSize = DEFAULT_MIN_PIXEL_SIZE
+      }
+
+      if let raw = options?["areaThreshold"] {
+        guard let value = (raw as? NSNumber)?.doubleValue, value.isFinite, value >= 0, value <= 1 else {
+          promise.reject("ERR_INVALID_OPTIONS", "areaThreshold must be a number between 0 and 1")
+          return
+        }
+        areaThreshold = CGFloat(value)
+      } else {
+        areaThreshold = DEFAULT_AREA_THRESHOLD
+      }
+
       guard let rawImage = self.loadImage(from: imageUri) else {
         promise.reject("ERR_LOAD_IMAGE", "Failed to load image from URI: \(imageUri)")
         return
@@ -24,7 +47,7 @@ public class ExpoFaceCheckModule: Module {
       let imageWidth = CGFloat(cgImage.width)
       let imageHeight = CGFloat(cgImage.height)
 
-      if imageWidth * imageHeight < MIN_PIXEL_SIZE {
+      if imageWidth * imageHeight < minPixelSize {
         promise.resolve([
           "status": "LOW_QUALITY",
           "faceCount": 0
@@ -62,7 +85,7 @@ public class ExpoFaceCheckModule: Module {
 
         detectedFaces.sort { $0.area > $1.area }
         let maxArea = detectedFaces[0].area
-        let dominantCount = detectedFaces.filter { $0.area / maxArea > AREA_THRESHOLD }.count
+        let dominantCount = detectedFaces.filter { $0.area / maxArea > areaThreshold }.count
 
         if dominantCount == 0 {
           promise.resolve([
