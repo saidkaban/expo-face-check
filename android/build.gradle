@@ -3,13 +3,14 @@ apply plugin: 'kotlin-android'
 apply plugin: 'expo-module-gradle-plugin'
 
 group = 'expo.modules.facecheck'
-version = '0.2.1'
+version = '0.2.2'
 
 android {
   namespace "expo.modules.facecheck"
 
   defaultConfig {
     minSdkVersion 21
+    versionName "0.2.2"
   }
 }
 
